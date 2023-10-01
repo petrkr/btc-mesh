@@ -1,2 +1,4 @@
-btc/__pycache__/
-*.json
+.idea
+.vscode
+venv
+__pycache__
