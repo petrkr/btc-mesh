@@ -1,6 +1,7 @@
 import pickle
 import struct
 
+
 def serialize_and_chunk_data(data, chunk_size):
     # Serialize the data
     serialized_data = pickle.dumps(data)
@@ -8,7 +9,7 @@ def serialize_and_chunk_data(data, chunk_size):
     # Chunk the serialized data into byte streams of a defined size
     chunks = []
     for i in range(0, len(serialized_data), chunk_size):
-        chunk = serialized_data[i:i+chunk_size]
+        chunk = serialized_data[i:i + chunk_size]
         chunks.append(chunk)
 
     # Pack the chunk information into a binary string
@@ -28,9 +29,11 @@ import json
 # import md5
 import string
 
+
 class Segment:
 
-    def __init__(self, _id, payload=None, tx_hash=None, sequence_num=0, testnet=False, segment_count=None, block=None, message=False):
+    def __init__(self, _id, payload=None, tx_hash=None, sequence_num=0, testnet=False, segment_count=None, block=None,
+                 message=False):
         self.segment_count = segment_count
         self.tx_hash = tx_hash
         self.payload_id = _id
@@ -42,6 +45,24 @@ class Segment:
 
     def __str__(self):
         return f"Msg {self.payload_id} Part {self.sequence_num}"
+
+    def serialize_to_json(self):
+        data = {
+            "payload_id": self.payload_id,
+            "testnet": self.testnet,
+            "sequence_num": self.sequence_num,
+            "payload": self.payload,
+            "block": self.block,
+            "message": self.message
+        }
+
+        if self.segment_count is not None:
+            data["segment_count"] = self.segment_count
+
+        if self.tx_hash is not None:
+            data["tx_hash"] = self.tx_hash
+
+        return json.dumps(data)
 
     def __repr__(self):
         return self.serialize_to_json()
@@ -60,6 +81,7 @@ class Segment:
 
         if self.sequence_num > 0:
             data["c"] = self.sequence_num
+            data["s"] = self.segment_count
 
         if self.sequence_num == 0:
             data["s"] = self.segment_count
@@ -111,7 +133,8 @@ class Segment:
         # Block confirmation
         block = data["b"] if "b" in data else None
 
-        return cls( _id, payload, tx_hash=tx_hash, sequence_num=sequence_num, testnet=testnet, segment_count=segment_count, block=block,message=message)
+        return cls(_id, payload, tx_hash=tx_hash, sequence_num=sequence_num, testnet=testnet,
+                   segment_count=segment_count, block=block, message=message)
 
     @classmethod
     def segment_json_is_valid(cls, data):
@@ -136,7 +159,8 @@ class Segment:
     ##    * **t** - `string` - Hex transaction data for this segment. May be Z85-encoded.
     ##    * **b** - `integer` - Block height of corresponding transaction hash. Will be 0 for mempool transactions.
     @classmethod
-    def tx_to_segments(self, device_id, strHexTx, strHexTxHash, messageIdx=0, network='m', isZ85=False):
+    def tx_to_segments(self, device_id, strHexTx, strHexTxHash, messageIdx, network='m', isZ85=False):
+
         # a unique identifier for set of segments from a particular node
         _id = str(device_id) + ":" + str(messageIdx)
 
@@ -153,9 +177,10 @@ class Segment:
 
         # segment0Len = 100  ## 110?
         # segment1Len = 180  ## 190?
-        mtu = 80 # TODO - determine mesh MTU. Can't find in docs. Trial & Error?
+        mtu = 80  # TODO - determine mesh MTU. Can't find in docs. Trial & Error?
+                  #      - an MTU of 80 seemed most reliable so far...
 
-        # if isZ85 : 
+        # if isZ85 :
         #     segment0Len += 24
 
         strRaw = strHexTx
@@ -165,21 +190,21 @@ class Segment:
         length = len(strRaw)
 
         seg_count = 1
-        if length <= mtu :
+        if length <= mtu:
             seg_count = 1
-        else :
+        else:
             length -= mtu
             seg_count = 1
             seg_count += (length / mtu)
-            if length % mtu > 0 :
+            if length % mtu > 0:
                 seg_count += 1
 
         tx_id = messageIdx
 
         ret = []
-        for seg_num in range(0, int(seg_count) + 1) :
+        for seg_num in range(0, int(seg_count) + 1):
 
-            if seg_num == 0 :
+            if seg_num == 0:
                 # if isZ85 :
                 #     tx_hash = z85.encode(strHexTxHash.decode("hex"))
                 # else :
@@ -189,23 +214,24 @@ class Segment:
                 print(f"seg_len = {seg_len}")
 
                 tx_seg = strRaw
-                if seg_len > mtu :
+                if seg_len > mtu:
                     seg_len = mtu
                     # tx_seg = strRaw[:seg_len]
                     # strRaw = strRaw[seg_len:]
-                
-                rObj = Segment(_id, None, tx_hash=strHexTxHash, segment_count=int(seg_count) + 1, testnet=(network == 't'), message=(network == 'd'))
+
+                rObj = Segment(_id, None, tx_hash=strHexTxHash, segment_count=int(seg_count) + 1,
+                               testnet=(network == 't'), message=(network == 'd'))
                 ret.append(rObj)
 
-            else :
+            else:
                 seg_len = len(strRaw)
                 tx_seg = strRaw
-                if seg_len > mtu :
+                if seg_len > mtu:
                     seg_len = mtu
                     tx_seg = strRaw[:seg_len]
                     strRaw = strRaw[seg_len:]
 
-                rObj = Segment(_id, tx_seg, sequence_num=seg_num)
+                rObj = Segment(_id, tx_seg, sequence_num=seg_num, segment_count=int(seg_count) + 1)
                 ret.append(rObj)
 
         return ret

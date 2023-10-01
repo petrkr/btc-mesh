@@ -1,10 +1,11 @@
-''' 
+'''
 This module derived from Rich D's PyMuleTools respository:
 
 https://github.com/kansas-city-bitcoin-developers/PyMuleTools
 '''
 
 from segment import Segment
+import json
 
 class SegmentStorage:
     def __init__(self):
@@ -73,10 +74,33 @@ class SegmentStorage:
         if segment.tx_hash is not None:
             self.__transactionLookup[segment.tx_hash] = segment.payload_id
 
+        print("Stored segment with payload_id: ", str(segment.payload_id))
+
+
     def is_complete(self, payload_id):
         segments = self.get(payload_id)
         if segments is not None:
             segment = next((s for s in segments if s.segment_count is not None), None)
             return segment is not None and segment.segment_count == len(segments)
-
         return False
+
+    def get_segment_status(self, payload_id):
+        segments, status = self.get(payload_id), {}
+
+        # Ensure segments are sorted by sequence number
+        segments.sort(key=lambda s: s.sequence_num)
+
+        # Calculate the total expected segment count
+        total_segments = segments[0].segment_count if segments else 0
+
+        # Create a set of received segment sequence numbers
+        received_segments = set(segment.sequence_num for segment in segments)
+
+        # Find missing segments by subtracting received segments from all segments
+        missing_segments = [seq_num for seq_num in range(total_segments) if seq_num not in received_segments]
+
+        status['missing'] = set(missing_segments)
+        status['received'] = set(received_segments)
+        status['payload_id'] = payload_id
+
+        return status
