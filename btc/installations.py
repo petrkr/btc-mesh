@@ -1,4 +1,22 @@
 import subprocess, os, sys
+import urllib.request
+
+def install_pip3():
+    try:
+        # Check if pip3 is available
+        subprocess.run(["pip3", "--version"], check=True)
+    except FileNotFoundError:
+        try:
+            # Install pip3 using the system package manager (e.g., apt-get for Debian/Ubuntu)
+            subprocess.run(["sudo", "apt", "install", "python3-pip"], check=True)
+            print("pip3 installed successfully.")
+        except Exception as e:
+            print("Failed to install pip3:", e)
+            sys.exit(1)
+
+
+install_pip3()
+
 
 def is_user_in_group(username, groupname):
     try:
@@ -29,7 +47,7 @@ else:
 
 def install_meshtastic():
     try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'meshtastic'])
+        subprocess.check_call([sys.executable, '-m', 'pip3', 'install', '--user', 'meshtastic'])
         print("meshtastic has been successfully installed.")
     except subprocess.CalledProcessError:
         print("Failed to install meshtastic. Please install it manually.")
@@ -42,14 +60,14 @@ try:
 
     print("meshtastic is already installed.")
 except ImportError:
-    # 'meshtastic' is not installed; install it using pip
+    # 'meshtastic' is not installed; install it using pip3
     print("Installing meshtastic...")
     install_meshtastic()
 
 
 def install_bdkpython():
     try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'bdkpython'])
+        subprocess.check_call([sys.executable, '-m', 'pip3', 'install', 'bdkpython'])
         print("bdkpython has been successfully installed.")
     except subprocess.CalledProcessError:
         print("Failed to install bdkpython. Please install it manually.")
@@ -62,13 +80,13 @@ try:
 
     print("bdkpython is already installed.")
 except ImportError:
-    # 'bdkpython' is not installed; install it using pip
+    # 'bdkpython' is not installed; install it using pip3
     print("Installing bdkpython...")
     install_bdkpython()
 
 def install_pandas_dataframe():
     try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pandas'])
+        subprocess.check_call([sys.executable, '-m', 'pip3', 'install', 'pandas'])
         print("pandas.dataframe has been successfully installed.")
     except subprocess.CalledProcessError:
         print("Failed to install pandas.dataframe. Please install it manually.")
